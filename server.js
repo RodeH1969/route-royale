@@ -57,13 +57,15 @@ const MAX_PLAYERS = 52;
 
 let gameState = {
   sessionId: null,
-  status: 'waiting',       // waiting | active | complete
+  status: 'waiting',
   currentStopIndex: -1,
   playerCount: 0,
   aliveCount: 0,
   winProbability: 50,
   elimRules: [],
-  lastEvent: null
+  lastEvent: null,
+  tripId: null,        // locked trip ID for this session
+  tripDeparture: null  // human-readable departure time
 };
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -99,21 +101,27 @@ async function pollGTFS() {
   if (!gameState.sessionId || gameState.status !== 'active') return;
 
   try {
-    const GtfsRT = require('gtfs-realtime-bindings');
+    const { FeedMessage } = require('gtfs-realtime-bindings');
     const res = await fetch(GTFS_RT_URL);
     if (!res.ok) return;
     const buffer = await res.arrayBuffer();
-    const feed = GtfsRT.transit_realtime.FeedMessage.decode(new Uint8Array(buffer));
+    const feed = FeedMessage.decode(new Uint8Array(buffer));
 
-    // Find 379 vehicles
+    // Find the specific trip vehicle
     for (const entity of feed.entity) {
       if (!entity.vehicle) continue;
+      const tripId = entity.vehicle.trip && entity.vehicle.trip.tripId;
       const routeId = entity.vehicle.trip && entity.vehicle.trip.routeId;
-      if (routeId !== ROUTE_ID) continue;
+
+      // If we have a locked tripId, match exactly — otherwise fall back to route
+      if (gameState.tripId) {
+        if (tripId !== gameState.tripId) continue;
+      } else {
+        if (routeId !== ROUTE_ID) continue;
+      }
 
       const stopSeq = entity.vehicle.currentStopSequence;
-      // GTFS stop_sequence is 1-based, our index is 0-based
-      const stopIndex = stopSeq - 2; // adjust for trip starting at seq 2
+      const stopIndex = stopSeq - 2;
 
       if (stopIndex > lastProcessedStop && stopIndex < STOPS.length) {
         lastProcessedStop = stopIndex;
@@ -300,6 +308,8 @@ function publicState() {
     playerCount: gameState.playerCount,
     aliveCount: gameState.aliveCount,
     lastEvent: gameState.lastEvent,
+    tripId: gameState.tripId,
+    tripDeparture: gameState.tripDeparture,
     stops: STOPS
   };
 }
@@ -324,6 +334,37 @@ function stopPolling() {
 }
 
 // ─── Player API ───────────────────────────────────────────────────────────────
+
+// GET today's available 379 trips (for admin trip selector)
+app.get('/api/trips', async (req, res) => {
+  try {
+    const { FeedMessage } = require('gtfs-realtime-bindings');
+    const fetch2 = require('node-fetch');
+    const response = await fetch2(process.env.GTFS_RT_URL);
+    if (!response.ok) return res.status(502).json({ error: 'GTFS feed unavailable' });
+    const buffer = await response.arrayBuffer();
+    const feed = FeedMessage.decode(new Uint8Array(buffer));
+
+    const trips = [];
+    for (const entity of feed.entity) {
+      if (!entity.vehicle) continue;
+      const routeId = entity.vehicle.trip && entity.vehicle.trip.routeId;
+      if (routeId !== ROUTE_ID) continue;
+      const tripId = entity.vehicle.trip.tripId;
+      const stopSeq = entity.vehicle.currentStopSequence || 0;
+      const pos = entity.vehicle.position;
+      trips.push({
+        tripId,
+        stopSequence: stopSeq,
+        lat: pos ? pos.latitude : null,
+        lng: pos ? pos.longitude : null,
+      });
+    }
+    res.json({ trips });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // GET game state (called on every app open — rehydration)
 app.get('/api/state', async (req, res) => {
@@ -432,12 +473,12 @@ app.get(`/${ADMIN_PATH}/api/state`, async (req, res) => {
 
 // POST create new session
 app.post(`/${ADMIN_PATH}/api/session`, async (req, res) => {
-  const { winProbability = 50, elimRules } = req.body;
+  const { winProbability = 50, elimRules, tripId, tripDeparture } = req.body;
 
   try {
     const { rows } = await db.query(
-      `INSERT INTO sessions (win_probability) VALUES ($1) RETURNING id`,
-      [winProbability]
+      `INSERT INTO sessions (win_probability, trip_id, trip_departure) VALUES ($1, $2, $3) RETURNING id`,
+      [winProbability, tripId || null, tripDeparture || null]
     );
     const sessionId = rows[0].id;
 
@@ -469,6 +510,8 @@ app.post(`/${ADMIN_PATH}/api/session`, async (req, res) => {
     gameState.winProbability = winProbability;
     gameState.elimRules = rules;
     gameState.lastEvent = null;
+    gameState.tripId = tripId || null;
+    gameState.tripDeparture = tripDeparture || null;
     lastProcessedStop = -1;
 
     broadcastState();

@@ -5,9 +5,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   route_id VARCHAR(20) NOT NULL DEFAULT '379-4799',
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   status VARCHAR(20) NOT NULL DEFAULT 'waiting',
-  -- status: waiting | active | complete
   win_probability INTEGER NOT NULL DEFAULT 50,
-  -- percentage 1-100, set by admin
+  trip_id VARCHAR(100),
+  trip_departure VARCHAR(20),
   created_at TIMESTAMP DEFAULT NOW()
 );
 

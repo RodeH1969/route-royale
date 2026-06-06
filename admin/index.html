@@ -92,6 +92,18 @@ input[type=text], input[type=number], select {
   <!-- CREATE SESSION -->
   <div class="section">
     <h2>Create New Session</h2>
+
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;color:#C9A84C;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;">Select Your Bus Trip</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="trip-select" style="flex:1;background:#222;border:1px solid #555;color:#fff;padding:8px 10px;border-radius:6px;font-size:13px;">
+          <option value="">— Load live 379 trips —</option>
+        </select>
+        <button class="btn btn-grey" onclick="loadTrips()">Refresh</button>
+      </div>
+      <div style="font-size:11px;color:#666;margin-top:6px;" id="trip-hint">Click Refresh to see live 379 buses currently running</div>
+    </div>
+
     <div id="rules-list"></div>
     <button class="add-btn" onclick="addRule()">+ Add Elimination Rule</button>
     <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
@@ -177,16 +189,55 @@ function addRule() {
   renderRules();
 }
 
+async function loadTrips() {
+  const sel = document.getElementById('trip-select');
+  const hint = document.getElementById('trip-hint');
+  sel.innerHTML = '<option value="">Loading...</option>';
+  hint.textContent = 'Fetching live 379 buses...';
+  try {
+    const res = await fetch(`${ADMIN}/api/trips`);
+    const data = await res.json();
+    if (!data.trips || data.trips.length === 0) {
+      sel.innerHTML = '<option value="">No 379 buses currently live</option>';
+      hint.textContent = 'No live trips found. Try during morning peak or use manual triggers.';
+      return;
+    }
+    sel.innerHTML = '<option value="">— Select your bus trip —</option>';
+    data.trips.forEach((t, i) => {
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify({ tripId: t.tripId, departure: `Trip ${i+1} (stop seq ${t.stopSequence})` });
+      opt.textContent = `379 Trip ${i+1} — currently at stop ${t.stopSequence}`;
+      sel.appendChild(opt);
+    });
+    hint.textContent = `${data.trips.length} live 379 bus${data.trips.length>1?'es':''} found. Pick the one you're on.`;
+  } catch(e) {
+    sel.innerHTML = '<option value="">Error loading trips</option>';
+    hint.textContent = `Error: ${e.message}`;
+  }
+}
+
 async function createSession() {
   const winProb = parseInt(document.getElementById('new-win-prob').value);
+  const tripVal = document.getElementById('trip-select').value;
+  let tripId = null, tripDeparture = null;
+  if (tripVal) {
+    try {
+      const parsed = JSON.parse(tripVal);
+      tripId = parsed.tripId;
+      tripDeparture = parsed.departure;
+    } catch(e) {}
+  }
+  if (!tripId) {
+    if (!confirm('No trip selected — game will match ALL 379 buses. Continue?')) return;
+  }
   const res = await fetch(`${ADMIN}/api/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ winProbability: winProb, elimRules: rules })
+    body: JSON.stringify({ winProbability: winProb, elimRules: rules, tripId, tripDeparture })
   });
   const data = await res.json();
   if (data.success) {
-    log(`Session created: ID ${data.sessionId}`);
+    log(`Session created: ID ${data.sessionId} — Trip: ${tripDeparture||'Any 379'}`);
     document.getElementById('btn-start').disabled = false;
     loadState();
   } else {
@@ -248,6 +299,9 @@ async function loadState() {
     gs.currentStopIndex >= 0 ? gs.currentStopIndex : '—';
 
   document.getElementById('win-prob').value = gs.winProbability || 50;
+  if (gs.tripDeparture) {
+    document.getElementById('stat-stop').title = `Trip: ${gs.tripId}`;
+  }
 
   // Buttons
   document.getElementById('btn-start').disabled = gs.status !== 'waiting' || !gs.sessionId;
