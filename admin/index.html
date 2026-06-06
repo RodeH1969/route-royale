@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Royale — Admin</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #111; color: #fff; font-family: sans-serif; font-size: 14px; }
+.hdr { background: #1A1A1A; border-bottom: 3px solid #C9A84C; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+.hdr h1 { font-size: 16px; color: #C9A84C; letter-spacing: .05em; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-waiting { background: #888; }
+.dot-active { background: #4ade80; }
+.dot-complete { background: #C0272D; }
+.body { padding: 20px; max-width: 700px; margin: 0 auto; }
+.section { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.section h2 { font-size: 13px; color: #C9A84C; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+.row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+.row label { font-size: 12px; color: #888; width: 120px; flex-shrink: 0; }
+input[type=text], input[type=number], select {
+  background: #222; border: 1px solid #444; color: #fff; padding: 8px 10px;
+  border-radius: 6px; font-size: 14px; flex: 1;
+}
+.btn { padding: 10px 20px; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-gold { background: #C9A84C; color: #111; }
+.btn-green { background: #1a6b1a; color: #fff; }
+.btn-red { background: #8a1a1a; color: #fff; }
+.btn-grey { background: #333; color: #fff; }
+.btn:disabled { opacity: .4; cursor: default; }
+.rule-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; padding: 8px; background: #222; border-radius: 6px; }
+.rule-row input { flex: 1; }
+.rule-row select { width: 100px; flex: none; }
+.rule-row .ri { width: 24px; text-align: center; color: #555; font-size: 12px; flex-shrink: 0; }
+.del-btn { background: #4a1a1a; border: none; color: #f87171; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.add-btn { background: #1a3a1a; border: none; color: #4ade80; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 6px; }
+.stat-row { display: flex; gap: 12px; margin-bottom: 12px; }
+.stat { background: #222; border-radius: 8px; padding: 12px 16px; text-align: center; flex: 1; }
+.stat .n { font-size: 28px; font-weight: 700; color: #C9A84C; }
+.stat .l { font-size: 11px; color: #666; text-transform: uppercase; margin-top: 2px; }
+.player-list { max-height: 300px; overflow-y: auto; }
+.player-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-bottom: 1px solid #222; }
+.player-item:last-child { border-bottom: none; }
+.card-pill { background: #333; border-radius: 4px; padding: 2px 7px; font-size: 13px; font-weight: 700; }
+.card-red { color: #C0272D; }
+.card-black { color: #fff; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.badge-alive { background: #1A4A2A; color: #4ade80; }
+.badge-elim { background: #4a1a1a; color: #f87171; }
+.badge-winner { background: #4a3800; color: #C9A84C; }
+.stop-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.stop-btn { background: #222; border: 1px solid #444; color: #888; padding: 4px 8px; border-radius: 5px; font-size: 11px; cursor: pointer; }
+.stop-btn:hover { border-color: #C9A84C; color: #C9A84C; }
+.log { background: #0a0a0a; border-radius: 6px; padding: 10px; font-size: 11px; color: #666; height: 100px; overflow-y: auto; font-family: monospace; }
+.msg { color: #4ade80; }
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>⚡ Route Royale Admin</h1>
+  <div id="status-display"><span class="status-dot dot-waiting" id="status-dot"></span><span id="status-text">Waiting</span></div>
+</div>
+
+<div class="body">
+
+  <!-- LIVE STATS -->
+  <div class="section">
+    <h2>Live Stats</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="n" id="stat-players">0</div><div class="l">Players</div></div>
+      <div class="stat"><div class="n" id="stat-alive">0</div><div class="l">Alive</div></div>
+      <div class="stat"><div class="n" id="stat-stop">—</div><div class="l">Current Stop</div></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-green" id="btn-start" onclick="startGame()" disabled>▶ Start Game</button>
+      <button class="btn btn-red" id="btn-stop" onclick="stopGame()" disabled>■ Stop Game</button>
+    </div>
+  </div>
+
+  <!-- WIN PROBABILITY -->
+  <div class="section">
+    <h2>Prize Control</h2>
+    <div class="row">
+      <label>Win probability</label>
+      <input type="number" id="win-prob" min="0" max="100" value="50" style="width:80px;flex:none;" />
+      <span style="color:#888;">%</span>
+      <button class="btn btn-grey" onclick="setWinProb()" style="margin-left:8px;">Set</button>
+    </div>
+    <div style="font-size:11px;color:#666;margin-top:4px;">Controls card flip outcome probability. 100 = always wins prize. 0 = never wins.</div>
+  </div>
+
+  <!-- CREATE SESSION -->
+  <div class="section">
+    <h2>Create New Session</h2>
+    <div id="rules-list"></div>
+    <button class="add-btn" onclick="addRule()">+ Add Elimination Rule</button>
+    <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
+      <label style="color:#888;font-size:12px;">Win prob:</label>
+      <input type="number" id="new-win-prob" value="50" min="0" max="100" style="width:70px;" />
+      <span style="color:#888;font-size:12px;">%</span>
+      <button class="btn btn-gold" onclick="createSession()" style="margin-left:auto;">Create Session</button>
+    </div>
+  </div>
+
+  <!-- MANUAL STOP TRIGGER -->
+  <div class="section">
+    <h2>Manual Stop Trigger (Testing)</h2>
+    <div style="font-size:11px;color:#666;margin-bottom:10px;">Use when GTFS isn't available or for testing. Triggers elimination logic for that stop.</div>
+    <div class="stop-list" id="stop-list"></div>
+  </div>
+
+  <!-- PLAYER LIST -->
+  <div class="section">
+    <h2>Players</h2>
+    <div class="player-list" id="player-list"><div style="color:#555;padding:10px;">No players yet</div></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section">
+    <h2>Event Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+const ADMIN = window.location.pathname.replace(/\/$/, '');
+
+// Default elim rules
+const DEFAULT_RULES = [
+  { stopIndex: 5,  callText: '♣ Clubs Out!',    killsSuit: '♣', killsRanks: '', isFinal: false },
+  { stopIndex: 7,  callText: '2s 3s 4s Out!',   killsSuit: '',  killsRanks: '2,3,4', isFinal: false },
+  { stopIndex: 9,  callText: '♦ Diamonds Out!', killsSuit: '♦', killsRanks: '', isFinal: false },
+  { stopIndex: 11, callText: '♠ Spades Out!',   killsSuit: '♠', killsRanks: '', isFinal: false },
+  { stopIndex: 13, callText: 'J Q K Out!',       killsSuit: '',  killsRanks: 'J,Q,K', isFinal: false },
+  { stopIndex: 15, callText: '9s 10s Out!',      killsSuit: '',  killsRanks: '9,10', isFinal: false },
+  { stopIndex: 17, callText: '5s 6s Out!',       killsSuit: '',  killsRanks: '5,6', isFinal: false },
+  { stopIndex: 18, callText: 'FINAL CUT!',        killsSuit: '',  killsRanks: '', isFinal: true },
+];
+
+const STOPS = [
+  "Royal Pde, Ashgrove","Waterworks Rd / Monoplane St","Glory St, West Ashgrove",
+  "Waterworks Rd / Myagh Rd","Waterworks Rd / Girraween Gr","Waterworks Rd / Hibiscus Ave",
+  "Waterworks Rd / Elimatta Dr","Waterworks Rd, Ashgrove","Waterworks Rd / St Finbarr's",
+  "Waterworks Rd / Woodland St","Waterworks Rd / Boon St","Waterworks Rd / Mossvale St",
+  "Waterworks Rd / Whitta St","Waterworks Rd / Glenrosa Rd","Waterworks Rd / Cairns St",
+  "Musgrave Rd, Red Hill Shops","Musgrave Rd / Hammond St","Musgrave Rd / Upper Clifton Tce",
+  "Musgrave Rd, Normanby Fiveways","Musgrave Rd / Normanby Hotel"
+];
+
+let rules = [...DEFAULT_RULES];
+
+function renderRules() {
+  const list = document.getElementById('rules-list');
+  list.innerHTML = rules.map((r, i) => `
+    <div class="rule-row">
+      <span class="ri">${i+1}</span>
+      <select onchange="rules[${i}].stopIndex=parseInt(this.value)">
+        ${STOPS.map((s,si) => `<option value="${si}" ${r.stopIndex===si?'selected':''}>${si}: ${s}</option>`).join('')}
+      </select>
+      <input type="text" value="${r.callText}" placeholder="Call text e.g. ♥ Hearts Out!"
+        onchange="rules[${i}].callText=this.value" style="min-width:120px;" />
+      <input type="text" value="${r.killsSuit||''}" placeholder="Suit ♠♥♦♣"
+        onchange="rules[${i}].killsSuit=this.value" style="width:60px;flex:none;" />
+      <input type="text" value="${r.killsRanks||''}" placeholder="Ranks e.g. 2,3,4"
+        onchange="rules[${i}].killsRanks=this.value" style="width:100px;flex:none;" />
+      <label style="font-size:11px;color:#888;white-space:nowrap;">
+        <input type="checkbox" ${r.isFinal?'checked':''} onchange="rules[${i}].isFinal=this.checked" /> Final
+      </label>
+      <button class="del-btn" onclick="rules.splice(${i},1);renderRules()">✕</button>
+    </div>
+  `).join('');
+}
+
+function addRule() {
+  rules.push({ stopIndex: 0, callText: '', killsSuit: '', killsRanks: '', isFinal: false });
+  renderRules();
+}
+
+async function createSession() {
+  const winProb = parseInt(document.getElementById('new-win-prob').value);
+  const res = await fetch(`${ADMIN}/api/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ winProbability: winProb, elimRules: rules })
+  });
+  const data = await res.json();
+  if (data.success) {
+    log(`Session created: ID ${data.sessionId}`);
+    document.getElementById('btn-start').disabled = false;
+    loadState();
+  } else {
+    log(`Error: ${data.error}`);
+  }
+}
+
+async function startGame() {
+  const res = await fetch(`${ADMIN}/api/start`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    log('Game started — GTFS polling active');
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-stop').disabled = false;
+    loadState();
+  }
+}
+
+async function stopGame() {
+  await fetch(`${ADMIN}/api/stop`, { method: 'POST' });
+  log('Game stopped');
+  document.getElementById('btn-stop').disabled = true;
+  loadState();
+}
+
+async function setWinProb() {
+  const p = parseInt(document.getElementById('win-prob').value);
+  await fetch(`${ADMIN}/api/win-prob`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ probability: p })
+  });
+  log(`Win probability set to ${p}%`);
+}
+
+async function triggerStop(idx) {
+  await fetch(`${ADMIN}/api/trigger-stop`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stopIndex: idx })
+  });
+  log(`Triggered stop ${idx}: ${STOPS[idx]}`);
+}
+
+async function loadState() {
+  const res = await fetch(`${ADMIN}/api/state`);
+  const data = await res.json();
+  const gs = data.gameState;
+
+  // Status dot
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot dot-' + gs.status;
+  document.getElementById('status-text').textContent =
+    gs.status.charAt(0).toUpperCase() + gs.status.slice(1);
+
+  document.getElementById('stat-players').textContent = gs.playerCount || 0;
+  document.getElementById('stat-alive').textContent = gs.aliveCount || 0;
+  document.getElementById('stat-stop').textContent =
+    gs.currentStopIndex >= 0 ? gs.currentStopIndex : '—';
+
+  document.getElementById('win-prob').value = gs.winProbability || 50;
+
+  // Buttons
+  document.getElementById('btn-start').disabled = gs.status !== 'waiting' || !gs.sessionId;
+  document.getElementById('btn-stop').disabled = gs.status !== 'active';
+
+  // Players
+  const pl = document.getElementById('player-list');
+  if (data.players && data.players.length > 0) {
+    pl.innerHTML = data.players.map(p => {
+      const isRed = p.card_suit === '♥' || p.card_suit === '♦';
+      const badge = p.status === 'alive' ? 'badge-alive' :
+                    p.status === 'winner' ? 'badge-winner' : 'badge-elim';
+      const label = p.status === 'winner' ? '🏆 Winner' :
+                    p.status === 'alive' ? 'Alive' : 'Out';
+      return `<div class="player-item">
+        <span>${p.name}</span>
+        <span class="card-pill ${isRed?'card-red':'card-black'}">${p.card_rank}${p.card_suit}</span>
+        <span class="badge ${badge}">${label}</span>
+      </div>`;
+    }).join('');
+  } else {
+    pl.innerHTML = '<div style="color:#555;padding:10px;">No players yet</div>';
+  }
+}
+
+function renderStopButtons() {
+  const list = document.getElementById('stop-list');
+  list.innerHTML = STOPS.map((s, i) =>
+    `<button class="stop-btn" onclick="triggerStop(${i})">${i}: ${s.split(',')[0]}</button>`
+  ).join('');
+}
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += `<div class="msg">[${time}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// Init
+renderRules();
+renderStopButtons();
+loadState();
+setInterval(loadState, 5000);
+</script>
+</body>
+</html>
