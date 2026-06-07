@@ -556,11 +556,16 @@ app.get(`/${ADMIN_PATH}`, (req, res) => res.sendFile(path.join(__dirname, 'admin
 // Live 379 trips from GTFS-RT
 app.get(`/${ADMIN_PATH}/api/trips`, async (req, res) => {
   try {
+    console.log('GTFS fetch:', GTFS_RT_URL);
     const response = await fetch(GTFS_RT_URL);
-    if (!response.ok) return res.status(502).json({ error: 'GTFS feed unavailable' });
+    console.log('GTFS status:', response.status);
+    if (!response.ok) return res.status(502).json({ error: `GTFS unavailable: ${response.status}` });
     const buffer = await response.arrayBuffer();
+    console.log('GTFS buffer:', buffer.byteLength, 'bytes');
     const feed = FeedMessage.decode(new Uint8Array(buffer));
+    console.log('GTFS entities:', feed.entity.length);
     const filterRouteId = req.query.routeId || ROUTE_ID;
+    console.log('Filter route:', filterRouteId);
     const trips = [];
     for (const entity of feed.entity) {
       if (!entity.vehicle) continue;
@@ -571,8 +576,10 @@ app.get(`/${ADMIN_PATH}/api/trips`, async (req, res) => {
       const pos = entity.vehicle.position;
       trips.push({ tripId, stopSequence: stopSeq, lat: pos ? pos.latitude : null, lng: pos ? pos.longitude : null });
     }
+    console.log('Trips found:', trips.length);
     res.json({ trips });
   } catch (err) {
+    console.error('Trips error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
