@@ -130,11 +130,12 @@ function onRouteChange() {
 async function loadTrips() {
   const sel = document.getElementById('trip-select');
   const hint = document.getElementById('trip-hint');
+  const routeId = document.getElementById('route-select').value;
+  const routeName = document.getElementById('route-select').options[document.getElementById('route-select').selectedIndex].text.split(' —')[0];
   sel.innerHTML = '<option value="">Loading...</option>';
-  hint.textContent = 'Fetching live 379 buses from TransLink...';
+  hint.textContent = `Fetching live ${routeName} buses from TransLink...`;
   document.getElementById('btn-create').disabled = true;
   try {
-    const routeId = document.getElementById('route-select').value;
     const res = await fetch(`${ADMIN}/api/trips?routeId=${routeId}`);
     const data = await res.json();
     if (!data.trips || data.trips.length === 0) {
