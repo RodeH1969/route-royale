@@ -147,8 +147,8 @@ async function loadTrips() {
     sel.innerHTML = '<option value="">— Select your bus —</option>';
     data.trips.forEach((t, i) => {
       const opt = document.createElement('option');
-      opt.value = JSON.stringify({ tripId: t.tripId, departure: `379 Bus ${i+1}` });
-      opt.textContent = `379 Bus ${i+1} — currently at stop ${t.stopSequence}`;
+      opt.value = JSON.stringify({ tripId: t.tripId, departure: `${routeName} Bus ${i+1}` });
+      opt.textContent = `${routeName} Bus ${i+1} — currently at stop ${t.stopSequence}`;
       sel.appendChild(opt);
     });
     hint.textContent = `${data.trips.length} live ${routeName} bus${data.trips.length>1?'es':''} found. Pick the one you're on.`;
