@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="/socket.io/socket.io.js"></script>
@@ -662,17 +663,79 @@ function drawRoute(){
   if(cstop)cstop.textContent=STOPS[ci];
   if(nstop)nstop.textContent=STOPS[Math.min(ci+1,STOPS.length-1)];
 
-  drawBusFront(ctx,RX,BUS_Y);
+  drawBusFront(ctx,RX,BUS_Y + busRock);
+
+  // Stop arrival flash — "AT STOP" banner fades in/out
+  if(stopFlash > 0){
+    const ci2 = Math.round(bp);
+    const sname = STOPS[ci2] || '';
+    const short = sname.replace('Waterworks Rd / ','').replace('Musgrave Rd, ','').replace('Musgrave Rd / ','').replace(', Ashgrove','').trim();
+    ctx.globalAlpha = Math.min(stopFlash, 0.92);
+    ctx.fillStyle = '#C9A84C';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    const bw = Math.min(W - 40, 260);
+    const bx = (W - bw) / 2;
+    ctx.beginPath();
+    ctx.roundRect(bx, BUS_Y - 68, bw, 36, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#111';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚏 ' + short, W/2, BUS_Y - 45);
+    ctx.globalAlpha = 1;
+    stopFlash = Math.max(0, stopFlash - 0.006);
+  }
+}
+
+// Bus state machine:
+//   'stopped'  — at a stop, road frozen, waiting for server to fire next stop
+//   'moving'   — travelling between stops, road scrolling
+let busMode = 'stopped';
+let targetStop = 0;
+let arrivedStop = -1;
+let busRock = 0;
+let stopFlash = 0;
+let stopFlashTO = null;
+
+function flashStopName(){
+  stopFlash = 1.0;
+  clearTimeout(stopFlashTO);
+  stopFlashTO = setTimeout(()=>{ stopFlash = 0; }, 2500);
 }
 
 function animateRoute(){
-  if(!animRunning)return;
+  if(!animRunning){ requestAnimationFrame(animateRoute); return; }
+
   if(!overlayActive){
-    const target=gameState?Math.max(0,gameState.currentStopIndex):0;
-    if(bp<target)bp=Math.min(bp+0.012,target);
-    else if(bp<STOPS.length-1)bp+=0.004;
-    roadOffset+=1.5; // scroll road markings upward
+    const serverStop = gameState ? Math.max(0, gameState.currentStopIndex) : 0;
+
+    if(busMode === 'moving'){
+      // Advance bp toward target, scroll road
+      bp = Math.min(bp + 0.018, targetStop);
+      roadOffset += 2.2;
+      busRock = Math.sin(roadOffset * 0.18) * 1.4;
+      // Arrived?
+      if(bp >= targetStop){
+        bp = targetStop;
+        arrivedStop = targetStop;
+        busMode = 'stopped';
+        busRock = 0;
+        stopBusSound();
+        flashStopName();
+      }
+    } else {
+      // STOPPED — road frozen, bus idles gently
+      busRock = Math.sin(Date.now() * 0.003) * 0.5;
+      // Has server fired a new stop ahead of us?
+      if(serverStop > arrivedStop){
+        targetStop = serverStop;
+        busMode = 'moving';
+        startBusSound();
+      }
+    }
   }
+
   drawRoute();
   requestAnimationFrame(animateRoute);
 }
@@ -680,9 +743,19 @@ function animateRoute(){
 // ── Socket.io ──
 const socket=io();
 socket.on('game_state',(state)=>{
+  const wasNull = gameState === null;
   gameState=state;
   document.getElementById('plcnt').textContent=(state.aliveCount||0)+' players';
   if(state.currentStopName){document.getElementById('cstop').textContent=state.currentStopName;document.getElementById('nstop').textContent=state.nextStopName||'—';}
+
+  // On first state received, snap animation to current server position
+  // so a mid-journey join doesn't animate from stop 0
+  if(wasNull && state.currentStopIndex >= 0){
+    bp = state.currentStopIndex;
+    arrivedStop = state.currentStopIndex;
+    busMode = 'stopped';
+  }
+
   if(state.lastEvent){
     const ev=state.lastEvent;
     if(ev.type==='elimination'||ev.type==='final_cut'){
