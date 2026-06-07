@@ -555,7 +555,7 @@ app.get(`/${ADMIN_PATH}`, (req, res) => res.sendFile(path.join(__dirname, 'admin
 
 // Live 379 trips from GTFS-RT
 app.get(`/${ADMIN_PATH}/api/trips`, async (req, res) => {
-    const { FeedMessage } = require('gtfs-realtime-bindings');
+  try {
     const response = await fetch(GTFS_RT_URL);
     if (!response.ok) return res.status(502).json({ error: 'GTFS feed unavailable' });
     const buffer = await response.arrayBuffer();
