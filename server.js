@@ -4,7 +4,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
-const { FeedMessage } = require('gtfs-realtime-bindings');
+const GtfsRt = require('gtfs-realtime-bindings');
+const FeedMessage = GtfsRt.transit_realtime ? GtfsRt.transit_realtime.FeedMessage : GtfsRt.FeedMessage;
 const path = require('path');
 
 const app = express();
