@@ -291,6 +291,106 @@ function distributeStops(available, n) {
   return result;
 }
 
+// ─── Stop Coordinates (GPS proximity matching) ───────────────────────────────
+// Used to map vehicle lat/lng → stop index reliably instead of stopSeq offsets
+const STOP_COORDS = {
+  '379-4799': [
+    { lat: -27.4456, lng: 152.9857 }, // 0  Royal Pde, Ashgrove
+    { lat: -27.4468, lng: 152.9844 }, // 1  Waterworks Rd / Monoplane St
+    { lat: -27.4480, lng: 152.9833 }, // 2  Glory St, West Ashgrove
+    { lat: -27.4491, lng: 152.9820 }, // 3  Waterworks Rd / Myagh Rd
+    { lat: -27.4503, lng: 152.9808 }, // 4  Waterworks Rd / Girraween Gr
+    { lat: -27.4515, lng: 152.9796 }, // 5  Waterworks Rd / Hibiscus Ave
+    { lat: -27.4527, lng: 152.9784 }, // 6  Waterworks Rd / Elimatta Dr
+    { lat: -27.4540, lng: 152.9772 }, // 7  Waterworks Rd, Ashgrove
+    { lat: -27.4553, lng: 152.9758 }, // 8  Waterworks Rd / St Finbarr's
+    { lat: -27.4566, lng: 152.9745 }, // 9  Waterworks Rd / Woodland St
+    { lat: -27.4578, lng: 152.9731 }, // 10 Waterworks Rd / Boon St
+    { lat: -27.4591, lng: 152.9718 }, // 11 Waterworks Rd / Mossvale St
+    { lat: -27.4604, lng: 152.9705 }, // 12 Waterworks Rd / Whitta St
+    { lat: -27.4617, lng: 152.9692 }, // 13 Waterworks Rd / Glenrosa Rd
+    { lat: -27.4630, lng: 152.9679 }, // 14 Waterworks Rd / Cairns St
+    { lat: -27.4648, lng: 152.9650 }, // 15 Musgrave Rd, Red Hill Shops
+    { lat: -27.4658, lng: 152.9635 }, // 16 Musgrave Rd / Hammond St
+    { lat: -27.4668, lng: 152.9620 }, // 17 Musgrave Rd / Upper Clifton Tce
+    { lat: -27.4678, lng: 152.9605 }, // 18 Musgrave Rd, Normanby Fiveways
+    { lat: -27.4685, lng: 152.9595 }, // 19 Musgrave Rd / Normanby Hotel
+  ],
+  '380-4799': [
+    { lat: -27.4180, lng: 152.9340 }, // 0  Waterworks Rd at Hilder Road
+    { lat: -27.4192, lng: 152.9328 }, // 1  Waterworks Rd at Petmar St
+    { lat: -27.4200, lng: 152.9318 }, // 2  Petmar St at Petmar Street South
+    { lat: -27.4208, lng: 152.9308 }, // 3  Petmar St at Petmar Street North
+    { lat: -27.4195, lng: 152.9295 }, // 4  Hilder Rd at Wittonga Park
+    { lat: -27.4215, lng: 152.9280 }, // 5  Kaloma Rd at Hilder Rd
+    { lat: -27.4228, lng: 152.9268 }, // 6  Kaloma Rd at Hilder Road School
+    { lat: -27.4241, lng: 152.9256 }, // 7  Kaloma Rd at Woorama Rd
+    { lat: -27.4254, lng: 152.9244 }, // 8  Kaloma Rd at Harward St
+    { lat: -27.4270, lng: 152.9260 }, // 9  Settlement Rd at Chaprowe St
+    { lat: -27.4290, lng: 152.9285 }, // 10 Waterworks Rd at Settlement Rd
+    { lat: -27.4315, lng: 152.9310 }, // 11 Waterworks Rd at Gap Uniting Church
+    { lat: -27.4338, lng: 152.9332 }, // 12 Waterworks Rd at Gap High School
+    { lat: -27.4360, lng: 152.9354 }, // 13 Waterworks Rd at The Gap Village
+    { lat: -27.4382, lng: 152.9375 }, // 14 Waterworks Rd at Jevons St
+    { lat: -27.4404, lng: 152.9396 }, // 15 Waterworks Rd at Payne Rd
+    { lat: -27.4420, lng: 152.9412 }, // 16 Waterworks Rd at Cooinda St
+    { lat: -27.4436, lng: 152.9428 }, // 17 Waterworks Rd at Kilmaine St
+    { lat: -27.4448, lng: 152.9440 }, // 18 Waterworks Rd at Greenlanes Rd
+    { lat: -27.4456, lng: 152.9452 }, // 19 Waterworks Rd at Firhill St
+    { lat: -27.4468, lng: 152.9844 }, // 20 Waterworks Rd at Monoplane St
+    { lat: -27.4480, lng: 152.9833 }, // 21 Glory St, West Ashgrove
+    { lat: -27.4491, lng: 152.9820 }, // 22 Waterworks Rd at Myagh Rd
+    { lat: -27.4503, lng: 152.9808 }, // 23 Waterworks Rd at Girraween Grove
+    { lat: -27.4515, lng: 152.9796 }, // 24 Waterworks Rd at Hibiscus Ave
+    { lat: -27.4527, lng: 152.9784 }, // 25 Waterworks Rd at Elimatta Drive
+    { lat: -27.4540, lng: 152.9772 }, // 26 Waterworks Rd, Ashgrove
+    { lat: -27.4553, lng: 152.9758 }, // 27 Waterworks Rd at St Finbarr's
+    { lat: -27.4566, lng: 152.9745 }, // 28 Waterworks Rd at Woodland St
+    { lat: -27.4578, lng: 152.9731 }, // 29 Waterworks Rd at Boon St
+    { lat: -27.4591, lng: 152.9718 }, // 30 Waterworks Rd at Mossvale St
+    { lat: -27.4604, lng: 152.9705 }, // 31 Waterworks Rd at Whitta St
+    { lat: -27.4617, lng: 152.9692 }, // 32 Waterworks Rd at Glenrosa Rd
+    { lat: -27.4630, lng: 152.9679 }, // 33 Waterworks Rd at Cairns St
+    { lat: -27.4648, lng: 152.9650 }, // 34 Musgrave Rd, Red Hill Shops
+    { lat: -27.4658, lng: 152.9635 }, // 35 Musgrave Rd at Hammond St
+    { lat: -27.4668, lng: 152.9620 }, // 36 Musgrave Rd at Upper Clifton Tce
+    { lat: -27.4678, lng: 152.9605 }, // 37 Musgrave Rd, Normanby Fiveways
+    { lat: -27.4685, lng: 152.9595 }, // 38 Musgrave Rd at Normanby Hotel
+    { lat: -27.4690, lng: 152.9585 }, // 39 Countess St at Normanby Fiveways
+    { lat: -27.4650, lng: 152.9990 }, // 40 Roma St, Transit Centre
+    { lat: -27.4678, lng: 153.0228 }, // 41 Ann St, City Hall
+    { lat: -27.4695, lng: 153.0238 }, // 42 Adelaide St near David Jones
+    { lat: -27.4700, lng: 153.0245 }, // 43 Adelaide St near Hutton Lane
+    { lat: -27.4706, lng: 153.0252 }, // 44 Wharf St near Ann St
+    { lat: -27.4712, lng: 153.0258 }, // 45 Wickham Tce Stand A
+  ]
+};
+
+// Haversine distance in metres between two lat/lng points
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Find nearest stop index to a vehicle lat/lng
+// Only advances forward — never goes backwards along the route
+// Returns -1 if closest stop is more than SNAP_RADIUS metres away
+const SNAP_RADIUS = 300; // metres — bus must be within 300m of a stop to trigger it
+
+function nearestStopIndex(lat, lng, fromIndex) {
+  const coords = STOP_COORDS[ROUTE_ID];
+  if (!coords) return -1;
+  let best = -1, bestDist = SNAP_RADIUS;
+  for (let i = fromIndex; i < coords.length; i++) {
+    const d = haversineM(lat, lng, coords[i].lat, coords[i].lng);
+    if (d < bestDist) { bestDist = d; best = i; }
+  }
+  return best;
+}
+
 // ─── GTFS-RT Polling ─────────────────────────────────────────────────────────
 let lastProcessedStop = -1;
 let pollInterval = null;
@@ -299,28 +399,54 @@ async function pollGTFS() {
   if (!gameState.sessionId || gameState.status !== 'active') return;
   try {
     const res = await fetch(GTFS_RT_URL);
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.log(`GTFS fetch failed: ${res.status}`);
+      return;
+    }
     const buffer = await res.arrayBuffer();
     const feed = FeedMessage.decode(new Uint8Array(buffer));
+
+    let matchedVehicle = false;
 
     for (const entity of feed.entity) {
       if (!entity.vehicle) continue;
       const tripId = entity.vehicle.trip && entity.vehicle.trip.tripId;
       const routeId = entity.vehicle.trip && entity.vehicle.trip.routeId;
 
+      // Filter to our trip or route
       if (gameState.tripId) {
         if (tripId !== gameState.tripId) continue;
       } else {
         if (routeId !== ROUTE_ID) continue;
       }
 
+      matchedVehicle = true;
+      const pos = entity.vehicle.position;
       const stopSeq = entity.vehicle.currentStopSequence;
-      const stopIndex = stopSeq - 2;
 
-      if (stopIndex > lastProcessedStop && stopIndex < STOPS.length) {
-        lastProcessedStop = stopIndex;
-        await processStopEvent(stopIndex);
+      // Always log raw feed data so we can verify
+      console.log(`[GTFS] tripId=${tripId} routeId=${routeId} stopSeq=${stopSeq} lat=${pos ? pos.latitude : 'N/A'} lng=${pos ? pos.longitude : 'N/A'}`);
+
+      if (!pos || !pos.latitude || !pos.longitude) {
+        console.log(`[GTFS] No position data for this vehicle — cannot do GPS matching`);
+        continue;
       }
+
+      // GPS proximity match — find nearest stop ahead of last processed stop
+      const stopIndex = nearestStopIndex(pos.latitude, pos.longitude, lastProcessedStop + 1);
+
+      if (stopIndex === -1) {
+        console.log(`[GTFS] Vehicle at ${pos.latitude},${pos.longitude} — not within ${SNAP_RADIUS}m of any stop ahead of index ${lastProcessedStop}`);
+        continue;
+      }
+
+      console.log(`[GTFS] GPS match → stop index ${stopIndex} (${STOPS[stopIndex]}) dist OK — triggering`);
+      lastProcessedStop = stopIndex;
+      await processStopEvent(stopIndex);
+    }
+
+    if (!matchedVehicle) {
+      console.log(`[GTFS] No vehicle matched — tripId=${gameState.tripId || 'none'} routeId=${ROUTE_ID} — feed has ${feed.entity.length} entities`);
     }
   } catch (err) {
     console.error('GTFS poll error:', err.message);
@@ -329,9 +455,9 @@ async function pollGTFS() {
 
 function startPolling() {
   if (pollInterval) return;
-  pollInterval = setInterval(pollGTFS, 30000);
+  pollInterval = setInterval(pollGTFS, 15000); // poll every 15s — 30s was too slow
   pollGTFS();
-  console.log('GTFS polling started');
+  console.log('GTFS polling started (15s interval, GPS proximity matching)');
 }
 
 function stopPolling() {
