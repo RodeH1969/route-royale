@@ -16,37 +16,101 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const ADMIN_PATH = process.env.ADMIN_PATH || 'admin-secret';
 const GTFS_RT_URL = process.env.GTFS_RT_URL;
-const ROUTE_ID = '379-4799';
 const WIN_PROBABILITY = 10; // fixed at 10%
 const MAX_PLAYERS = 52;
 
-// 379 stop sequence — game ends at Normanby Hotel (index 19)
-const STOPS = [
-  "Royal Pde, Ashgrove",           // 0
-  "Waterworks Rd / Monoplane St",  // 1
-  "Glory St, West Ashgrove",       // 2
-  "Waterworks Rd / Myagh Rd",      // 3
-  "Waterworks Rd / Girraween Gr",  // 4
-  "Waterworks Rd / Hibiscus Ave",  // 5
-  "Waterworks Rd / Elimatta Dr",   // 6
-  "Waterworks Rd, Ashgrove",       // 7
-  "Waterworks Rd / St Finbarr's",  // 8
-  "Waterworks Rd / Woodland St",   // 9
-  "Waterworks Rd / Boon St",       // 10
-  "Waterworks Rd / Mossvale St",   // 11
-  "Waterworks Rd / Whitta St",     // 12
-  "Waterworks Rd / Glenrosa Rd",   // 13
-  "Waterworks Rd / Cairns St",     // 14
-  "Musgrave Rd, Red Hill Shops",   // 15
-  "Musgrave Rd / Hammond St",      // 16
-  "Musgrave Rd / Upper Clifton Tce", // 17
-  "Musgrave Rd, Normanby Fiveways", // 18 — FINAL CUT here
-  "Musgrave Rd / Normanby Hotel"   // 19 — must have winner by here
-];
+// Route definitions
+const ROUTES = {
+  '379-4799': {
+    name: '379',
+    stops: [
+      "Royal Pde, Ashgrove",
+      "Waterworks Rd / Monoplane St",
+      "Glory St, West Ashgrove",
+      "Waterworks Rd / Myagh Rd",
+      "Waterworks Rd / Girraween Gr",
+      "Waterworks Rd / Hibiscus Ave",
+      "Waterworks Rd / Elimatta Dr",
+      "Waterworks Rd, Ashgrove",
+      "Waterworks Rd / St Finbarr's",
+      "Waterworks Rd / Woodland St",
+      "Waterworks Rd / Boon St",
+      "Waterworks Rd / Mossvale St",
+      "Waterworks Rd / Whitta St",
+      "Waterworks Rd / Glenrosa Rd",
+      "Waterworks Rd / Cairns St",
+      "Musgrave Rd, Red Hill Shops",
+      "Musgrave Rd / Hammond St",
+      "Musgrave Rd / Upper Clifton Tce",
+      "Musgrave Rd, Normanby Fiveways",
+      "Musgrave Rd / Normanby Hotel"
+    ],
+    registrationClosesAt: 14,
+    firstElimStop: 4,
+    finalCutStop: 18
+  },
+  '380-4799': {
+    name: '380',
+    stops: [
+      "Waterworks Rd at Hilder Road",
+      "Waterworks Rd at Petmar St",
+      "Petmar St at Petmar Street South",
+      "Petmar St at Petmar Street North",
+      "Hilder Rd at Wittonga Park",
+      "Kaloma Rd at Hilder Rd",
+      "Kaloma Rd at Hilder Road School",
+      "Kaloma Rd at Woorama Rd",
+      "Kaloma Rd at Harward St",
+      "Settlement Rd at Chaprowe St",
+      "Waterworks Rd at Settlement Rd",
+      "Waterworks Rd at Gap Uniting Church",
+      "Waterworks Rd at Gap High School",
+      "Waterworks Rd at The Gap Village",
+      "Waterworks Rd at Jevons St",
+      "Waterworks Rd at Payne Rd",
+      "Waterworks Rd at Cooinda St",
+      "Waterworks Rd at Kilmaine St",
+      "Waterworks Rd at Greenlanes Rd",
+      "Waterworks Rd at Firhill St",
+      "Waterworks Rd at Monoplane St",
+      "Glory St, West Ashgrove",
+      "Waterworks Rd at Myagh Rd",
+      "Waterworks Rd at Girraween Grove",
+      "Waterworks Rd at Hibiscus Ave",
+      "Waterworks Rd at Elimatta Drive",
+      "Waterworks Rd, Ashgrove",
+      "Waterworks Rd at St Finbarr's",
+      "Waterworks Rd at Woodland St",
+      "Waterworks Rd at Boon St",
+      "Waterworks Rd at Mossvale St",
+      "Waterworks Rd at Whitta St",
+      "Waterworks Rd at Glenrosa Rd",
+      "Waterworks Rd at Cairns St",
+      "Musgrave Rd, Red Hill Shops",
+      "Musgrave Rd at Hammond St",
+      "Musgrave Rd at Upper Clifton Tce",
+      "Musgrave Rd, Normanby Fiveways",
+      "Musgrave Rd at Normanby Hotel",
+      "Countess St at Normanby Fiveways",
+      "Roma St, Transit Centre",
+      "Ann St, City Hall",
+      "Adelaide St near David Jones",
+      "Adelaide St near Hutton Lane",
+      "Wharf St near Ann St",
+      "Wickham Tce Stand A"
+    ],
+    registrationClosesAt: 30,
+    firstElimStop: 8,
+    finalCutStop: 37
+  }
+};
 
-const REGISTRATION_CLOSES_AT_STOP = 14; // must join before stop 14
-const FIRST_ELIM_STOP = 4;              // earliest elimination stop
-const FINAL_CUT_STOP = 18;             // last elimination — must be down to 1
+// Active route — set when session created, defaults to 379
+let ROUTE_ID = '379-4799';
+let STOPS = ROUTES[ROUTE_ID].stops;
+let REGISTRATION_CLOSES_AT_STOP = ROUTES[ROUTE_ID].registrationClosesAt;
+let FIRST_ELIM_STOP = ROUTES[ROUTE_ID].firstElimStop;
+let FINAL_CUT_STOP = ROUTES[ROUTE_ID].finalCutStop;
 
 // ─── Game State ───────────────────────────────────────────────────────────────
 let gameState = {
@@ -55,10 +119,12 @@ let gameState = {
   currentStopIndex: -1,
   playerCount: 0,
   aliveCount: 0,
-  elimPlan: [],      // dynamically calculated [{stopIndex, callText, killsSuit, killsRanks, isFinal}]
+  elimPlan: [],
   lastEvent: null,
   tripId: null,
-  tripDeparture: null
+  tripDeparture: null,
+  routeId: '379-4799',
+  routeName: '379'
 };
 
 // ─── Dynamic Elimination Planner ──────────────────────────────────────────────
@@ -408,6 +474,8 @@ function publicState() {
     lastEvent: gameState.lastEvent,
     tripId: gameState.tripId,
     tripDeparture: gameState.tripDeparture,
+    routeId: gameState.routeId,
+    routeName: gameState.routeName,
     registrationOpen: gameState.currentStopIndex < REGISTRATION_CLOSES_AT_STOP,
     stops: STOPS
   };
@@ -493,11 +561,12 @@ app.get(`/${ADMIN_PATH}/api/trips`, async (req, res) => {
     if (!response.ok) return res.status(502).json({ error: 'GTFS feed unavailable' });
     const buffer = await response.arrayBuffer();
     const feed = FeedMessage.decode(new Uint8Array(buffer));
+    const filterRouteId = req.query.routeId || ROUTE_ID;
     const trips = [];
     for (const entity of feed.entity) {
       if (!entity.vehicle) continue;
       const routeId = entity.vehicle.trip && entity.vehicle.trip.routeId;
-      if (routeId !== ROUTE_ID) continue;
+      if (routeId !== filterRouteId) continue;
       const tripId = entity.vehicle.trip.tripId;
       const stopSeq = entity.vehicle.currentStopSequence || 0;
       const pos = entity.vehicle.position;
@@ -520,11 +589,19 @@ app.get(`/${ADMIN_PATH}/api/state`, async (req, res) => {
 
 // Create session
 app.post(`/${ADMIN_PATH}/api/session`, async (req, res) => {
-  const { tripId, tripDeparture } = req.body;
+  const { tripId, tripDeparture, routeId } = req.body;
+  // Set active route
+  const route = ROUTES[routeId] || ROUTES['379-4799'];
+  ROUTE_ID = routeId || '379-4799';
+  STOPS = route.stops;
+  REGISTRATION_CLOSES_AT_STOP = route.registrationClosesAt;
+  FIRST_ELIM_STOP = route.firstElimStop;
+  FINAL_CUT_STOP = route.finalCutStop;
+
   try {
     const { rows } = await db.query(
-      `INSERT INTO sessions (win_probability, trip_id, trip_departure) VALUES ($1,$2,$3) RETURNING id`,
-      [WIN_PROBABILITY, tripId || null, tripDeparture || null]
+      `INSERT INTO sessions (win_probability, trip_id, trip_departure, route_id) VALUES ($1,$2,$3,$4) RETURNING id`,
+      [WIN_PROBABILITY, tripId || null, tripDeparture || null, ROUTE_ID]
     );
     const sessionId = rows[0].id;
     gameState.sessionId = sessionId;
@@ -536,6 +613,8 @@ app.post(`/${ADMIN_PATH}/api/session`, async (req, res) => {
     gameState.lastEvent = null;
     gameState.tripId = tripId || null;
     gameState.tripDeparture = tripDeparture || null;
+    gameState.routeId = ROUTE_ID;
+    gameState.routeName = route.name;
     lastProcessedStop = -1;
     broadcastState();
     res.json({ success: true, sessionId });
