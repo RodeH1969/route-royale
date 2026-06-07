@@ -577,8 +577,9 @@ app.get(`/${ADMIN_PATH}/api/trips`, async (req, res) => {
       const pos = entity.vehicle.position;
       trips.push({ tripId, stopSequence: stopSeq, lat: pos ? pos.latitude : null, lng: pos ? pos.longitude : null });
     }
+    const routeDef = ROUTES[filterRouteId];
     console.log('Trips found:', trips.length);
-    res.json({ trips });
+    res.json({ trips, routeName: routeDef ? routeDef.name : filterRouteId });
   } catch (err) {
     console.error('Trips error:', err.message);
     res.status(500).json({ error: err.message });
