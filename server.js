@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const fetch = require('node-fetch');
+const { FeedMessage } = require('gtfs-realtime-bindings');
 const path = require('path');
 
 const app = express();
@@ -296,7 +297,6 @@ let pollInterval = null;
 async function pollGTFS() {
   if (!gameState.sessionId || gameState.status !== 'active') return;
   try {
-    const { FeedMessage } = require('gtfs-realtime-bindings');
     const res = await fetch(GTFS_RT_URL);
     if (!res.ok) return;
     const buffer = await res.arrayBuffer();
@@ -555,7 +555,6 @@ app.get(`/${ADMIN_PATH}`, (req, res) => res.sendFile(path.join(__dirname, 'admin
 
 // Live 379 trips from GTFS-RT
 app.get(`/${ADMIN_PATH}/api/trips`, async (req, res) => {
-  try {
     const { FeedMessage } = require('gtfs-realtime-bindings');
     const response = await fetch(GTFS_RT_URL);
     if (!response.ok) return res.status(502).json({ error: 'GTFS feed unavailable' });
