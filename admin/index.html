@@ -138,8 +138,8 @@ async function loadTrips() {
     const res = await fetch(`${ADMIN}/api/trips?routeId=${routeId}`);
     const data = await res.json();
     if (!data.trips || data.trips.length === 0) {
-      sel.innerHTML = '<option value="">No 379 buses live right now</option>';
-      hint.textContent = 'No live 379 trips found. Try during morning peak, or start game without selecting a trip (will track all 379s).';
+      sel.innerHTML = `<option value="">No ${routeName} buses live right now</option>`;
+      hint.textContent = `No live ${routeName} trips found. Try during operating hours, or start without selecting a trip.`;
       document.getElementById('btn-create').disabled = false;
       return;
     }
@@ -150,7 +150,7 @@ async function loadTrips() {
       opt.textContent = `379 Bus ${i+1} — currently at stop ${t.stopSequence}`;
       sel.appendChild(opt);
     });
-    hint.textContent = `${data.trips.length} live 379 bus${data.trips.length>1?'es':''} found. Pick the one you're on.`;
+    hint.textContent = `${data.trips.length} live ${routeName} bus${data.trips.length>1?'es':''} found. Pick the one you're on.`;
     document.getElementById('btn-create').disabled = false;
     log(`Found ${data.trips.length} live 379 trips`);
   } catch(e) {
