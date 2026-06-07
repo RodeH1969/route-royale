@@ -232,9 +232,6 @@ canvas#rc { display: block; }
       <div class="suits"><span style="color:#1A1A1A">♠</span><span style="color:#C0272D">♥</span><span style="color:#C0272D">♦</span><span style="color:#1A1A1A">♣</span></div>
       <div class="fl"><label>Your name</label><input id="inp-name" value="Rode C" /></div>
       <div class="fl"><label>Phone number</label><input id="inp-ph" value="0459 754 708" /></div>
-      <div class="fl"><label>Select your route</label>
-        <select><option value="379">379 — Ashgrove to City</option></select>
-      </div>
       <button class="rbtn" onclick="doReg()">Join Game</button>
       <p class="rnote">First 52 players · One entry per phone</p>
     </div>
@@ -453,7 +450,7 @@ function busStop(ctx,name,y,isCurrent,isElim,W,BUS_Y,roadX,frame){
   ctx.fillRect(shelterX+6,sY,shelterW-12,20);ctx.strokeRect(shelterX+6,sY,shelterW-12,20);
   ctx.fillStyle='#FFD700';ctx.fillRect(shelterX+6,sY,shelterW-12,5);
   ctx.fillStyle='#fff';ctx.font='bold 7px sans-serif';ctx.textAlign='center';
-  ctx.fillText('379',shelterX+shelterW/2,sY+14);
+  ctx.fillText(gameState&&gameState.routeName?gameState.routeName:'BUS',shelterX+shelterW/2,sY+14);
   ctx.fillStyle='#FFD700';ctx.font='bold 5px sans-serif';
   ctx.fillText('ASHGROVE–CITY',shelterX+shelterW/2,sY+21);
   const short=name.replace('Waterworks Rd / ','').replace('Musgrave Rd, ','').replace('Musgrave Rd / ','').replace(', Ashgrove','').replace(', Normanby','').trim().substring(0,14);
@@ -491,7 +488,7 @@ function drawBusFront(ctx,cx,cy){
   ctx.fillStyle='#F5C518';ctx.strokeStyle='#000';ctx.lineWidth=2;
   ctx.fillRect(-bw/2,-bh/2,bw,10);ctx.strokeRect(-bw/2,-bh/2,bw,10);
   ctx.fillStyle='#111';ctx.fillRect(-bw/2+5,-bh/2+1,bw-10,8);
-  ctx.fillStyle='#F5C518';ctx.font='bold 7px sans-serif';ctx.textAlign='center';ctx.fillText('379 CITY',0,-bh/2+7);
+  ctx.fillStyle='#F5C518';ctx.font='bold 7px sans-serif';ctx.textAlign='center';ctx.fillText((gameState&&gameState.routeName?gameState.routeName:'BUS')+' CITY',0,-bh/2+7);
   ctx.fillStyle='#a8d8ea';ctx.strokeStyle='#000';ctx.lineWidth=2.5;
   ctx.beginPath();ctx.roundRect(-bw/2+6,-bh/2+12,bw-12,20,4);ctx.fill();ctx.stroke();
   ctx.strokeStyle='#1E6FBF';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-bh/2+12);ctx.lineTo(0,-bh/2+32);ctx.stroke();
