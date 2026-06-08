@@ -766,7 +766,17 @@ function flashStopName(){
 }
 
 function animateRoute(){
-  if(!animRunning){requestAnimationFrame(animateRoute);return;}
+  if(!animRunning){
+    // Even when not animating, keep bp in sync with server so the static
+    // draw at bottom of page shows the correct position
+    if(gameState&&gameState.currentStopIndex>=0){
+      bp=gameState.currentStopIndex;
+      arrivedStop=gameState.currentStopIndex;
+      targetStop=gameState.currentStopIndex;
+    }
+    requestAnimationFrame(animateRoute);
+    return;
+  }
   if(!overlayActive){
     const serverStop=gameState?Math.max(0,gameState.currentStopIndex):0;
     if(busMode==='moving'){
@@ -1084,14 +1094,39 @@ function scrollStripToBus(){
 }
 
 function updateDistLabel(){
-  if(!amapBusLat||!amapUserLat){
-    document.getElementById('amap-dist').textContent='Locating bus...';
+  const el=document.getElementById('amap-dist');
+  if(!gameState||gameState.currentStopIndex<0){
+    el.textContent='Waiting for bus...';
     return;
   }
-  const dLat=amapBusLat-amapUserLat,dLng=amapBusLng-amapUserLng;
-  const distM=Math.round(Math.sqrt(dLat*dLat+dLng*dLng)*111000);
-  const distStr=distM>999?(distM/1000).toFixed(1)+'km':distM+'m';
-  document.getElementById('amap-dist').textContent='🚌 Bus is '+distStr+' away';
+  const busIdx=gameState.currentStopIndex;
+  const stops=gameState.stops||STOPS;
+
+  // If we have user GPS, find which stop they're nearest to
+  if(amapUserLat&&amapUserLng&&window.ROUTE_STOPS_COORDS){
+    const coords=window.ROUTE_STOPS_COORDS;
+    let nearestIdx=0,nearestDist=Infinity;
+    coords.forEach((s,i)=>{
+      const dLat=s.lat-amapUserLat,dLng=s.lng-amapUserLng;
+      const d=Math.sqrt(dLat*dLat+dLng*dLng)*111000;
+      if(d<nearestDist){nearestDist=d;nearestIdx=i;}
+    });
+    const stopsAway=nearestIdx-busIdx;
+    if(stopsAway<=0){
+      el.textContent='🚌 Bus has passed your stop';
+    } else if(stopsAway===1){
+      el.textContent='🚌 Bus is 1 stop away — board now!';
+      el.style.color='#ff4444';
+    } else {
+      el.textContent=`🚌 Bus is ${stopsAway} stops away from you`;
+      el.style.color='#4ade80';
+    }
+  } else {
+    // No user GPS — just show which stop the bus is at
+    const stopName=(stops[busIdx]||'').replace('Waterworks Rd / ','').replace('Musgrave Rd, ','').replace('Musgrave Rd / ','').trim();
+    el.textContent=`🚌 Bus currently at: ${stopName}`;
+    el.style.color='#C9A84C';
+  }
 }
 
 // Re-render strip whenever game state updates and map is visible
