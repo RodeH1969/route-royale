@@ -295,6 +295,35 @@ function distributeStops(available, n) {
 let lastProcessedStop = -1;
 let pollInterval = null;
 
+// ── GPS proximity matching ──────────────────────────────────────────────────
+const SNAP_RADIUS = 300; // metres
+
+const STOP_COORDS_379 = [
+  {lat:-27.4456,lng:152.9857},{lat:-27.4468,lng:152.9844},{lat:-27.4480,lng:152.9833},
+  {lat:-27.4491,lng:152.9820},{lat:-27.4503,lng:152.9808},{lat:-27.4515,lng:152.9796},
+  {lat:-27.4527,lng:152.9784},{lat:-27.4540,lng:152.9772},{lat:-27.4553,lng:152.9758},
+  {lat:-27.4566,lng:152.9745},{lat:-27.4578,lng:152.9731},{lat:-27.4591,lng:152.9718},
+  {lat:-27.4604,lng:152.9705},{lat:-27.4617,lng:152.9692},{lat:-27.4630,lng:152.9679},
+  {lat:-27.4648,lng:152.9650},{lat:-27.4658,lng:152.9635},{lat:-27.4668,lng:152.9620},
+  {lat:-27.4678,lng:152.9605},{lat:-27.4685,lng:152.9595}
+];
+
+function haversineM(lat1,lng1,lat2,lng2){
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function nearestStopIndex(lat,lng,fromIndex){
+  const coords=STOP_COORDS_379;
+  let best=-1,bestDist=SNAP_RADIUS;
+  for(let i=fromIndex;i<coords.length;i++){
+    const d=haversineM(lat,lng,coords[i].lat,coords[i].lng);
+    if(d<bestDist){bestDist=d;best=i;}
+  }
+  return best;
+}
+
 async function pollGTFS() {
   if (!gameState.sessionId || gameState.status !== 'active') return;
   try {
@@ -314,13 +343,36 @@ async function pollGTFS() {
         if (routeId !== ROUTE_ID) continue;
       }
 
+      const pos = entity.vehicle.position;
       const stopSeq = entity.vehicle.currentStopSequence;
-      const stopIndex = stopSeq - 2;
+      console.log(`[GTFS] tripId=${tripId} routeId=${routeId} stopSeq=${stopSeq} lat=${pos?pos.latitude:'N/A'} lng=${pos?pos.longitude:'N/A'}`);
 
-      if (stopIndex > lastProcessedStop && stopIndex < STOPS.length) {
-        lastProcessedStop = stopIndex;
-        await processStopEvent(stopIndex);
+      // Broadcast live bus position to all connected players for approach map
+      if (pos && pos.latitude && pos.longitude) {
+        io.emit('bus_position', {
+          lat: pos.latitude,
+          lng: pos.longitude,
+          routeName: gameState.routeName || ROUTE_ID
+        });
       }
+
+      // GPS proximity matching — find nearest stop ahead of last processed
+      if (!pos || !pos.latitude || !pos.longitude) {
+        // Fall back to stopSeq if no GPS — TransLink sequences are not always offset by 2
+        // Log raw value so we can tune
+        console.log(`[GTFS] No GPS position — stopSeq=${stopSeq}, skipping proximity match`);
+        continue;
+      }
+
+      const stopIndex = nearestStopIndex(pos.latitude, pos.longitude, lastProcessedStop + 1);
+      if (stopIndex === -1) {
+        console.log(`[GTFS] Not within ${SNAP_RADIUS}m of any stop ahead of index ${lastProcessedStop}`);
+        continue;
+      }
+
+      console.log(`[GTFS] GPS match → stop index ${stopIndex} (${STOPS[stopIndex]})`);
+      lastProcessedStop = stopIndex;
+      await processStopEvent(stopIndex);
     }
   } catch (err) {
     console.error('GTFS poll error:', err.message);
@@ -329,9 +381,9 @@ async function pollGTFS() {
 
 function startPolling() {
   if (pollInterval) return;
-  pollInterval = setInterval(pollGTFS, 30000);
+  pollInterval = setInterval(pollGTFS, 15000);
   pollGTFS();
-  console.log('GTFS polling started');
+  console.log('GTFS polling started (15s, GPS proximity matching)');
 }
 
 function stopPolling() {
