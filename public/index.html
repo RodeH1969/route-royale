@@ -87,17 +87,24 @@ canvas#rc { display: block; }
 .wbar.on { opacity: 1; }
 
 /* APPROACH MAP */
-#approach-map{position:fixed;top:0;left:0;right:0;bottom:0;background:#1A1A1A;z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0;}
-.amap-hdr{width:100%;background:#111;border-bottom:3px solid #C9A84C;padding:12px 16px;display:flex;align-items:center;gap:10px;}
-.amap-hdr img{height:40px;border-radius:5px;}
-.amap-hdr h2{font-size:15px;color:#C9A84C;font-weight:700;}
-.amap-sub{font-size:11px;color:#888;margin-top:2px;}
-.amap-canvas-wrap{width:100%;flex:1;position:relative;min-height:0;}
-canvas#amap{display:block;width:100%;height:100%;}
-.amap-legend{width:100%;background:#111;border-top:1px solid #333;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-shrink:0;}
-.aleg{display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;}
-.aleg-dot{width:14px;height:14px;border-radius:50%;border:2px solid #000;flex-shrink:0;}
-.amap-status{width:100%;background:#0d2b0d;border-top:2px solid #1a6b1a;padding:8px 16px;font-size:13px;color:#4ade80;font-weight:600;text-align:center;flex-shrink:0;}
+#approach-map{position:fixed;top:0;left:0;right:0;bottom:0;background:#0f0f0f;z-index:25;display:flex;flex-direction:column;}
+#amap-hdr{background:#111;border-bottom:3px solid #C9A84C;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+#amap-hdr img{height:40px;border-radius:6px;}
+#amap-hdr-text{flex:1;}
+#amap-hdr h2{font-size:16px;color:#C9A84C;font-weight:700;margin:0;}
+#amap-route-label{font-size:11px;color:#888;margin-top:2px;}
+#amap-close{background:none;border:2px solid #444;color:#aaa;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;flex-shrink:0;}
+#amap-close:active{background:#333;}
+#amap-body{flex:1;display:flex;overflow:hidden;min-height:0;}
+#amap-strip{flex:1;overflow-y:auto;padding:0 0 20px 0;position:relative;}
+#amap-strip::-webkit-scrollbar{width:4px;}
+#amap-strip::-webkit-scrollbar-track{background:#111;}
+#amap-strip::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+#amap-footer{background:#111;border-top:2px solid #1a6b1a;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#amap-dist{font-size:13px;color:#4ade80;font-weight:700;}
+#amap-legend-row{display:flex;gap:14px;align-items:center;}
+.aleg2{display:flex;align-items:center;gap:5px;font-size:10px;color:#888;}
+.aleg2-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 
 /* ELIM OVERLAY */
 #elim { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #0a0a0a; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .25s; }
@@ -333,19 +340,25 @@ canvas#amap{display:block;width:100%;height:100%;}
 <script src="/socket.io/socket.io.js"></script>
 <!-- APPROACH MAP OVERLAY -->
 <div id="approach-map" style="display:none;">
-  <div class="amap-hdr">
+  <div id="amap-hdr">
     <img src="/RouteRoyalelogo.jpg" alt="Route Royale"/>
-    <div style="flex:1"><h2>🚌 Bus Approaching</h2><div class="amap-sub" id="amap-route-label">Waiting for live bus data...</div></div>
-    <button onclick="hideApproachMap()" style="background:none;border:2px solid #555;color:#aaa;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">✕ Close</button>
+    <div id="amap-hdr-text">
+      <h2>🚌 Bus Approaching</h2>
+      <div id="amap-route-label">Waiting for live bus data...</div>
+    </div>
+    <button id="amap-close" onclick="hideApproachMap()">✕ Close</button>
   </div>
-  <div class="amap-canvas-wrap"><canvas id="amap"></canvas></div>
-  <div class="amap-legend">
-    <div class="aleg"><div class="aleg-dot" style="background:#1E6FBF;border-color:#F5C518;"></div>Live Bus</div>
-    <div class="aleg"><div class="aleg-dot" style="background:#C9A84C;border-color:#111;"></div>Your Stop</div>
-    <div class="aleg"><div class="aleg-dot" style="background:#4ade80;border-color:#111;"></div>Your Location</div>
-    <div class="aleg" style="margin-left:auto;font-size:10px;color:#555;">Updates every 15s</div>
+  <div id="amap-body">
+    <div id="amap-strip"></div>
   </div>
-  <div class="amap-status" id="amap-status">Locating bus...</div>
+  <div id="amap-footer">
+    <div id="amap-dist">Locating bus...</div>
+    <div id="amap-legend-row">
+      <div class="aleg2"><div class="aleg2-dot" style="background:#1E6FBF;border:2px solid #F5C518;"></div>Bus</div>
+      <div class="aleg2"><div class="aleg2-dot" style="background:#4ade80;border:2px solid #2d8a4a;"></div>You</div>
+      <div class="aleg2"><div class="aleg2-dot" style="background:#C9A84C;border:2px solid #8a6a1a;"></div>Stop</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -785,6 +798,7 @@ socket.on('game_state',(state)=>{
     busMode='stopped';busRock=0;
   }
   document.getElementById('plcnt').textContent=(state.aliveCount||0)+' players';
+  refreshApproachMap();
   if(state.currentStopName){document.getElementById('cstop').textContent=state.currentStopName;document.getElementById('nstop').textContent=state.nextStopName||'—';}
   if(state.lastEvent){
     const ev=state.lastEvent;
@@ -896,165 +910,191 @@ function launchFireworks(){const fc=document.getElementById('fwc');fc.width=fc.p
 function scatterCards(){const allCards=[];RANKS.forEach(r=>SUITS.forEach(s=>allCards.push({r,s})));const app=document.getElementById('app');let count=0;const interval=setInterval(()=>{if(count>=52){clearInterval(interval);return;}const card=allCards[count%allCards.length];const el=document.createElement('div');el.className='scard';const tx=(Math.random()*600-300)+'px',ty=(Math.random()*600-300)+'px',rot=(Math.random()*720-360)+'deg',dur=(1.5+Math.random()*2).toFixed(1)+'s';el.style.cssText=`left:${40+Math.random()*60}%;top:${30+Math.random()*40}%;--tx:${tx};--ty:${ty};--rot:${rot};animation-duration:${dur};`;el.innerHTML=`<div class="st" style="color:${card.s.c}">${card.r}<br/>${card.s.s}</div><div class="sc" style="color:${card.s.c}">${card.s.s}</div>`;app.appendChild(el);setTimeout(()=>el.remove(),parseFloat(dur)*1000+200);count++;},80);}
 
 // ── Approach Map ──
+// Vertical route strip — no coordinate projection needed
+// Bus position is expressed as stop index from server, not raw GPS lat/lng
 let amapVisible=false;
-let userLat=null,userLng=null;
-let busLat=null,busLng=null;
 let amapAnimFrame=null;
+let amapBusStopIndex=-1; // which stop the bus is at/between, from server
+let amapUserLat=null,amapUserLng=null;
+let amapBusLat=null,amapBusLng=null;
 
 function showApproachMap(){
   amapVisible=true;
   document.getElementById('approach-map').style.display='flex';
-  getUserLocation();
-  drawApproachMap();
+  startUserLocation();
+  renderRouteStrip();
+  // Auto-scroll to keep bus/user in view
+  scrollStripToBus();
 }
+
 function hideApproachMap(){
   amapVisible=false;
   document.getElementById('approach-map').style.display='none';
   if(amapAnimFrame){cancelAnimationFrame(amapAnimFrame);amapAnimFrame=null;}
 }
 
-function getUserLocation(){
+function startUserLocation(){
   if(!navigator.geolocation)return;
   navigator.geolocation.watchPosition(
-    pos=>{userLat=pos.coords.latitude;userLng=pos.coords.longitude;},
-    err=>{console.log('Geolocation error:',err.message);},
+    pos=>{amapUserLat=pos.coords.latitude;amapUserLng=pos.coords.longitude;updateDistLabel();},
+    err=>{console.log('Geolocation:',err.message);},
     {enableHighAccuracy:true,maximumAge:10000}
   );
 }
 
-// Draw the approach map — cartoon style matching the game
-function drawApproachMap(){
+// Build the route strip DOM — called once on show, updated by socket
+function renderRouteStrip(){
+  const strip=document.getElementById('amap-strip');
+  if(!strip)return;
+  const stops=gameState&&gameState.stops?gameState.stops:STOPS;
+  const currentIdx=gameState?gameState.currentStopIndex:-1;
+  // Bus position: use server stop index
+  const busIdx=currentIdx;
+
+  strip.innerHTML='';
+
+  // Top spacer
+  const spacer=document.createElement('div');
+  spacer.style.cssText='height:24px;';
+  strip.appendChild(spacer);
+
+  stops.forEach((name,i)=>{
+    const isPast=i<busIdx;
+    const isBus=i===busIdx;
+    const isNext=i===busIdx+1;
+    const short=name.replace('Waterworks Rd / ','').replace('Musgrave Rd, ','').replace('Musgrave Rd / ','').replace(', Ashgrove','').replace(', Normanby','').trim();
+
+    const row=document.createElement('div');
+    row.id='amap-stop-'+i;
+    row.style.cssText='display:flex;align-items:center;position:relative;padding:0 16px;min-height:56px;';
+
+    // Left: stop number + connector line
+    const lineCol=document.createElement('div');
+    lineCol.style.cssText='width:40px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;position:relative;';
+
+    // Vertical line segment above dot
+    if(i>0){
+      const lineUp=document.createElement('div');
+      lineUp.style.cssText=`width:3px;height:28px;background:${isPast?'#333':'#2a4a6a'};border-radius:2px;margin-bottom:0;`;
+      lineCol.appendChild(lineUp);
+    }else{
+      const sp=document.createElement('div');sp.style.cssText='height:28px;';lineCol.appendChild(sp);
+    }
+
+    // The dot
+    const dot=document.createElement('div');
+    let dotStyle='width:16px;height:16px;border-radius:50%;border:3px solid #000;flex-shrink:0;position:relative;z-index:2;';
+    if(isBus) dotStyle+='background:#1E6FBF;border-color:#F5C518;box-shadow:0 0 12px rgba(30,111,191,0.8);width:20px;height:20px;';
+    else if(isPast) dotStyle+='background:#1a1a1a;border-color:#333;';
+    else if(isNext) dotStyle+='background:#1a3a5a;border-color:#4a8abf;';
+    else dotStyle+='background:#1a2a3a;border-color:#2a4a6a;';
+    dot.style.cssText=dotStyle;
+    lineCol.appendChild(dot);
+
+    // Vertical line segment below dot
+    if(i<stops.length-1){
+      const lineDown=document.createElement('div');
+      lineDown.style.cssText=`width:3px;height:28px;background:${isPast?'#333':'#2a4a6a'};border-radius:2px;`;
+      lineCol.appendChild(lineDown);
+    }
+
+    row.appendChild(lineCol);
+
+    // Right: stop info card
+    const info=document.createElement('div');
+    info.style.cssText='flex:1;margin-left:14px;';
+
+    if(isBus){
+      // Big highlighted card for current bus stop
+      info.innerHTML=`
+        <div style="background:#1a2d4a;border:2px solid #F5C518;border-radius:12px;padding:12px 14px;position:relative;">
+          <div style="font-size:9px;color:#F5C518;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:4px;">🚌 BUS IS HERE</div>
+          <div style="font-size:16px;color:#fff;font-weight:700;line-height:1.2;">${short}</div>
+          <div style="font-size:10px;color:#888;margin-top:3px;">Stop ${i} of ${stops.length-1}</div>
+          <div style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:28px;">🚌</div>
+        </div>`;
+    } else if(isNext){
+      info.innerHTML=`
+        <div style="background:#111;border:1px solid #2a4a6a;border-radius:10px;padding:10px 12px;">
+          <div style="font-size:9px;color:#4a8abf;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:3px;">Next Stop</div>
+          <div style="font-size:14px;color:#ccc;font-weight:600;">${short}</div>
+        </div>`;
+    } else if(isPast){
+      info.innerHTML=`<div style="padding:8px 0;"><div style="font-size:12px;color:#333;text-decoration:line-through;">${short}</div></div>`;
+    } else {
+      info.innerHTML=`
+        <div style="padding:8px 0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;color:#555;">${short}</div>
+          <div style="font-size:10px;color:#333;">${i}</div>
+        </div>`;
+    }
+
+    row.appendChild(info);
+    strip.appendChild(row);
+  });
+
+  // Bottom spacer
+  const spacer2=document.createElement('div');
+  spacer2.style.cssText='height:40px;';
+  strip.appendChild(spacer2);
+
+  // Animate the bus dot pulse
+  animateBusDot();
+  scrollStripToBus();
+}
+
+let busDotFrame=null;
+function animateBusDot(){
+  if(busDotFrame)cancelAnimationFrame(busDotFrame);
   if(!amapVisible)return;
-  const canvas=document.getElementById('amap');
-  const wrap=canvas.parentElement;
-  const W=wrap.offsetWidth||380;
-  const H=wrap.offsetHeight||300;
-  canvas.width=W;canvas.height=H;
-  const ctx=canvas.getContext('2d');
+  const currentIdx=gameState?gameState.currentStopIndex:-1;
+  const el=document.getElementById('amap-stop-'+currentIdx);
+  if(el){
+    const dot=el.querySelectorAll('div')[1]; // the dot element
+    if(dot&&dot.style.background==='rgb(30, 111, 191)'){
+      const pulse=0.6+0.4*Math.sin(Date.now()*0.005);
+      dot.style.boxShadow=`0 0 ${8+pulse*10}px rgba(245,197,24,${pulse})`;
+    }
+  }
+  busDotFrame=requestAnimationFrame(animateBusDot);
+}
 
-  // Background — sky gradient matching game
-  ctx.fillStyle='#87CEEB';ctx.fillRect(0,0,W,H);
+function scrollStripToBus(){
+  const currentIdx=gameState?gameState.currentStopIndex:-1;
+  if(currentIdx<0)return;
+  const el=document.getElementById('amap-stop-'+currentIdx);
+  if(el){
+    // Scroll so the bus stop is about 1/3 from the top
+    const strip=document.getElementById('amap-strip');
+    const targetScroll=el.offsetTop-(strip.offsetHeight*0.33);
+    strip.scrollTo({top:Math.max(0,targetScroll),behavior:'smooth'});
+  }
+}
 
-  // Get stop coords for the current route
-  const ROUTE_STOPS_COORDS=window.ROUTE_STOPS_COORDS||[];
-  if(!ROUTE_STOPS_COORDS.length){
-    ctx.fillStyle='#C9A84C';ctx.font='bold 14px sans-serif';ctx.textAlign='center';
-    ctx.fillText('Waiting for bus data...',W/2,H/2);
-    amapAnimFrame=requestAnimationFrame(drawApproachMap);
+function updateDistLabel(){
+  if(!amapBusLat||!amapUserLat){
+    document.getElementById('amap-dist').textContent='Locating bus...';
     return;
   }
+  const dLat=amapBusLat-amapUserLat,dLng=amapBusLng-amapUserLng;
+  const distM=Math.round(Math.sqrt(dLat*dLat+dLng*dLng)*111000);
+  const distStr=distM>999?(distM/1000).toFixed(1)+'km':distM+'m';
+  document.getElementById('amap-dist').textContent='🚌 Bus is '+distStr+' away';
+}
 
-  // Find bounding box of all stops + user + bus
-  let minLat=99,maxLat=-99,minLng=199,maxLng=-199;
-  ROUTE_STOPS_COORDS.forEach(s=>{minLat=Math.min(minLat,s.lat);maxLat=Math.max(maxLat,s.lat);minLng=Math.min(minLng,s.lng);maxLng=Math.max(maxLng,s.lng);});
-  if(busLat){{minLat=Math.min(minLat,busLat);maxLat=Math.max(maxLat,busLat);}}
-  if(userLat){{minLat=Math.min(minLat,userLat);maxLat=Math.max(maxLat,userLat);}}
-
-  const pad=40;
-  const latRange=maxLat-minLat||0.01;
-  const lngRange=maxLng-minLng||0.01;
-  const scaleX=(W-pad*2)/lngRange;
-  const scaleY=(H-pad*2)/latRange;
-  const scale=Math.min(scaleX,scaleY);
-
-  function toXY(lat,lng){
-    return{
-      x:pad+(lng-minLng)*scale+(W-pad*2-(lngRange*scale))/2,
-      y:H-pad-(lat-minLat)*scale-(H-pad*2-(latRange*scale))/2
-    };
-  }
-
-  // Draw route line
-  ctx.strokeStyle='#555';ctx.lineWidth=4;ctx.setLineDash([8,6]);
-  ctx.beginPath();
-  ROUTE_STOPS_COORDS.forEach((s,i)=>{
-    const{x,y}=toXY(s.lat,s.lng);
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-  });
-  ctx.stroke();ctx.setLineDash([]);
-
-  // Draw stops as small bus shelter icons
-  const serverStop=gameState?gameState.currentStopIndex:-1;
-  ROUTE_STOPS_COORDS.forEach((s,i)=>{
-    const{x,y}=toXY(s.lat,s.lng);
-    const isPast=i<serverStop;
-    const isCurrent=i===serverStop;
-    // Stop pole
-    ctx.strokeStyle='#FFD700';ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-18);ctx.stroke();
-    // Stop flag
-    ctx.fillStyle=isCurrent?'#FFD700':isPast?'#333':'#1E6FBF';
-    ctx.strokeStyle='#000';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(x,y-18,22,12,3);ctx.fill();ctx.stroke();
-    ctx.fillStyle=isCurrent?'#111':'#fff';ctx.font='bold 6px sans-serif';ctx.textAlign='left';
-    ctx.fillText(i+'',x+3,y-9);
-    // Stop name for current/next
-    if(isCurrent||i===serverStop+1){
-      const name=(window.STOP_NAMES&&window.STOP_NAMES[i])||('Stop '+i);
-      const short=name.replace('Waterworks Rd / ','').replace('Musgrave Rd, ','').replace('Musgrave Rd / ','').trim().substring(0,16);
-      ctx.fillStyle=isCurrent?'#FFD700':'#ccc';
-      ctx.font=(isCurrent?'bold 10px':'9px')+' sans-serif';
-      ctx.textAlign='center';
-      ctx.fillText(short,x+11,y+12);
-    }
-  });
-
-  // Draw user location — green pulsing dot
-  if(userLat&&userLng){
-    const{x,y}=toXY(userLat,userLng);
-    const pulse=0.4+0.4*Math.sin(Date.now()*0.005);
-    ctx.strokeStyle=`rgba(74,222,128,${pulse})`;ctx.lineWidth=3;
-    ctx.beginPath();ctx.arc(x,y,14+pulse*4,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='#4ade80';ctx.strokeStyle='#000';ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(x,y,8,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#111';ctx.font='bold 8px sans-serif';ctx.textAlign='center';
-    ctx.fillText('YOU',x,y+3);
-  }
-
-  // Draw live bus — cartoon mini-bus
-  if(busLat&&busLng){
-    const{x,y}=toXY(busLat,busLng);
-    const bw=28,bh=20;
-    // Bus body
-    ctx.fillStyle='#1E6FBF';ctx.strokeStyle='#000';ctx.lineWidth=2;
-    ctx.beginPath();ctx.roundRect(x-bw/2,y-bh/2,bw,bh,4);ctx.fill();ctx.stroke();
-    // Stripe
-    ctx.fillStyle='#F5C518';ctx.fillRect(x-bw/2,y-bh/2,bw,5);
-    // Windows
-    ctx.fillStyle='#a8d8ea';ctx.strokeStyle='#000';ctx.lineWidth=1;
-    ctx.fillRect(x-10,y-bh/2+6,8,8);ctx.strokeRect(x-10,y-bh/2+6,8,8);
-    ctx.fillRect(x+2,y-bh/2+6,8,8);ctx.strokeRect(x+2,y-bh/2+6,8,8);
-    // Wheels
-    ctx.fillStyle='#111';
-    ctx.beginPath();ctx.arc(x-8,y+bh/2,4,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.beginPath();ctx.arc(x+8,y+bh/2,4,0,Math.PI*2);ctx.fill();ctx.stroke();
-    // Label
-    ctx.fillStyle='#FFD700';ctx.font='bold 7px sans-serif';ctx.textAlign='center';
-    ctx.fillText((gameState&&gameState.routeName)||'BUS',x,y-bh/2+4);
-    // Pulsing ring around bus
-    const busP=0.5+0.5*Math.sin(Date.now()*0.008);
-    ctx.strokeStyle=`rgba(30,111,191,${busP})`;ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(x,y,bw/2+6+busP*4,0,Math.PI*2);ctx.stroke();
-  }
-
-  // Distance label
-  if(busLat&&busLng&&userLat&&userLng){
-    const dLat=busLat-userLat,dLng=busLng-userLng;
-    const distM=Math.round(Math.sqrt(dLat*dLat+dLng*dLng)*111000);
-    const distStr=distM>999?(distM/1000).toFixed(1)+'km':distM+'m';
-    document.getElementById('amap-status').textContent='🚌 Bus is '+distStr+' away — updates every 15s';
-  } else if(!busLat){
-    document.getElementById('amap-status').textContent='Waiting for live bus GPS...';
-  }
-
-  amapAnimFrame=requestAnimationFrame(drawApproachMap);
+// Re-render strip whenever game state updates and map is visible
+function refreshApproachMap(){
+  if(!amapVisible)return;
+  renderRouteStrip();
+  updateDistLabel();
 }
 
 // Receive bus GPS from server via socket
 socket.on('bus_position',(data)=>{
-  busLat=data.lat;busLng=data.lng;
+  amapBusLat=data.lat;amapBusLng=data.lng;
   const label=document.getElementById('amap-route-label');
-  if(label)label.textContent=(data.routeName||'379')+' — Live GPS tracking';
+  if(label)label.textContent=(data.routeName||'379')+' — Live GPS';
+  updateDistLabel();
 });
 
 // ── Ticker ──
