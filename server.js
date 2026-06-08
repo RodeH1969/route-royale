@@ -299,26 +299,26 @@ let pollInterval = null;
 const SNAP_RADIUS = 300; // metres
 
 const STOP_COORDS_379 = [
-  {lat:-27.4449,lng:152.9750}, // 0  Royal Pde, Ashgrove
-  {lat:-27.4462,lng:152.9768}, // 1  Waterworks Rd / Monoplane St
-  {lat:-27.4469,lng:152.9783}, // 2  Glory St, West Ashgrove
-  {lat:-27.4476,lng:152.9800}, // 3  Waterworks Rd / Myagh Rd
-  {lat:-27.4483,lng:152.9817}, // 4  Waterworks Rd / Girraween Gr
-  {lat:-27.4490,lng:152.9833}, // 5  Waterworks Rd / Hibiscus Ave
-  {lat:-27.4497,lng:152.9850}, // 6  Waterworks Rd / Elimatta Dr
-  {lat:-27.4505,lng:152.9868}, // 7  Waterworks Rd, Ashgrove
-  {lat:-27.4513,lng:152.9886}, // 8  Waterworks Rd / St Finbarr's
-  {lat:-27.4521,lng:152.9904}, // 9  Waterworks Rd / Woodland St
-  {lat:-27.4529,lng:152.9922}, // 10 Waterworks Rd / Boon St
-  {lat:-27.4538,lng:152.9940}, // 11 Waterworks Rd / Mossvale St
-  {lat:-27.4547,lng:152.9958}, // 12 Waterworks Rd / Whitta St
-  {lat:-27.4556,lng:152.9977}, // 13 Waterworks Rd / Glenrosa Rd
-  {lat:-27.4566,lng:152.9996}, // 14 Waterworks Rd / Cairns St
-  {lat:-27.4580,lng:153.0030}, // 15 Musgrave Rd, Red Hill Shops
-  {lat:-27.4595,lng:153.0075}, // 16 Musgrave Rd / Hammond St
-  {lat:-27.4610,lng:153.0130}, // 17 Musgrave Rd / Upper Clifton Tce
-  {lat:-27.4628,lng:153.0200}, // 18 Musgrave Rd, Normanby Fiveways
-  {lat:-27.4643,lng:153.0275}, // 19 Musgrave Rd / Normanby Hotel (confirmed from live feed)
+  {lat:-27.44708,lng:152.97466}, //  0 Royal Pde, Ashgrove (confirmed)
+  {lat:-27.44759,lng:152.97682}, //  1 Waterworks Rd / Monoplane St
+  {lat:-27.44811,lng:152.97898}, //  2 Glory St, West Ashgrove
+  {lat:-27.44862,lng:152.98114}, //  3 Waterworks Rd / Myagh Rd
+  {lat:-27.44914,lng:152.98330}, //  4 Waterworks Rd / Girraween Gr
+  {lat:-27.44965,lng:152.98546}, //  5 Waterworks Rd / Hibiscus Ave
+  {lat:-27.45016,lng:152.98762}, //  6 Waterworks Rd / Elimatta Dr
+  {lat:-27.45068,lng:152.98978}, //  7 Waterworks Rd, Ashgrove
+  {lat:-27.45119,lng:152.99194}, //  8 Waterworks Rd / St Finbarr's
+  {lat:-27.45171,lng:152.99410}, //  9 Waterworks Rd / Woodland St
+  {lat:-27.45222,lng:152.99626}, // 10 Waterworks Rd / Boon St
+  {lat:-27.45273,lng:152.99842}, // 11 Waterworks Rd / Mossvale St
+  {lat:-27.45325,lng:153.00058}, // 12 Waterworks Rd / Whitta St
+  {lat:-27.45376,lng:153.00274}, // 13 Waterworks Rd / Glenrosa Rd
+  {lat:-27.45428,lng:153.00490}, // 14 Waterworks Rd / Cairns St
+  {lat:-27.45479,lng:153.00706}, // 15 Musgrave Rd, Red Hill Shops (confirmed)
+  {lat:-27.45587,lng:153.00884}, // 16 Musgrave Rd / Hammond St
+  {lat:-27.45696,lng:153.01063}, // 17 Musgrave Rd / Upper Clifton Tce
+  {lat:-27.45804,lng:153.01241}, // 18 Musgrave Rd, Normanby Fiveways
+  {lat:-27.45913,lng:153.01419}, // 19 Musgrave Rd / Normanby Hotel (confirmed)
 ];
 
 function haversineM(lat1,lng1,lat2,lng2){
