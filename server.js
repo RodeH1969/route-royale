@@ -299,13 +299,26 @@ let pollInterval = null;
 const SNAP_RADIUS = 300; // metres
 
 const STOP_COORDS_379 = [
-  {lat:-27.4456,lng:152.9857},{lat:-27.4468,lng:152.9844},{lat:-27.4480,lng:152.9833},
-  {lat:-27.4491,lng:152.9820},{lat:-27.4503,lng:152.9808},{lat:-27.4515,lng:152.9796},
-  {lat:-27.4527,lng:152.9784},{lat:-27.4540,lng:152.9772},{lat:-27.4553,lng:152.9758},
-  {lat:-27.4566,lng:152.9745},{lat:-27.4578,lng:152.9731},{lat:-27.4591,lng:152.9718},
-  {lat:-27.4604,lng:152.9705},{lat:-27.4617,lng:152.9692},{lat:-27.4630,lng:152.9679},
-  {lat:-27.4648,lng:152.9650},{lat:-27.4658,lng:152.9635},{lat:-27.4668,lng:152.9620},
-  {lat:-27.4678,lng:152.9605},{lat:-27.4685,lng:152.9595}
+  {lat:-27.4449,lng:152.9750}, // 0  Royal Pde, Ashgrove
+  {lat:-27.4462,lng:152.9768}, // 1  Waterworks Rd / Monoplane St
+  {lat:-27.4469,lng:152.9783}, // 2  Glory St, West Ashgrove
+  {lat:-27.4476,lng:152.9800}, // 3  Waterworks Rd / Myagh Rd
+  {lat:-27.4483,lng:152.9817}, // 4  Waterworks Rd / Girraween Gr
+  {lat:-27.4490,lng:152.9833}, // 5  Waterworks Rd / Hibiscus Ave
+  {lat:-27.4497,lng:152.9850}, // 6  Waterworks Rd / Elimatta Dr
+  {lat:-27.4505,lng:152.9868}, // 7  Waterworks Rd, Ashgrove
+  {lat:-27.4513,lng:152.9886}, // 8  Waterworks Rd / St Finbarr's
+  {lat:-27.4521,lng:152.9904}, // 9  Waterworks Rd / Woodland St
+  {lat:-27.4529,lng:152.9922}, // 10 Waterworks Rd / Boon St
+  {lat:-27.4538,lng:152.9940}, // 11 Waterworks Rd / Mossvale St
+  {lat:-27.4547,lng:152.9958}, // 12 Waterworks Rd / Whitta St
+  {lat:-27.4556,lng:152.9977}, // 13 Waterworks Rd / Glenrosa Rd
+  {lat:-27.4566,lng:152.9996}, // 14 Waterworks Rd / Cairns St
+  {lat:-27.4580,lng:153.0030}, // 15 Musgrave Rd, Red Hill Shops
+  {lat:-27.4595,lng:153.0075}, // 16 Musgrave Rd / Hammond St
+  {lat:-27.4610,lng:153.0130}, // 17 Musgrave Rd / Upper Clifton Tce
+  {lat:-27.4628,lng:153.0200}, // 18 Musgrave Rd, Normanby Fiveways
+  {lat:-27.4643,lng:153.0275}, // 19 Musgrave Rd / Normanby Hotel (confirmed from live feed)
 ];
 
 function haversineM(lat1,lng1,lat2,lng2){
